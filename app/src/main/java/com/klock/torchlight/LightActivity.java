@@ -12,6 +12,8 @@ import android.widget.GridLayout;
 
 public class LightActivity extends AppCompatActivity {
 
+    private static final String DIVIDER = ";";
+
     private GridLayout glRoot;
     private int        childHeight;
     private int        childWidth;
@@ -32,7 +34,18 @@ public class LightActivity extends AppCompatActivity {
     private void init () {
         getWindow().getDecorView().setBackgroundColor(getResources().getColor(R.color.black));
         glRoot = findViewById(R.id.gl_root);
-        for (int i = 0; i < glRoot.getColumnCount() * glRoot.getRowCount(); i++) {
+        int totalCount = glRoot.getColumnCount() * glRoot.getRowCount();
+        String[] lightStatusArr = null;
+        try {
+            String lightStatusStr = (String)new SpHelper(this, SpHelper.SP_LIGHT_STATUS).getSharedPreference(SpHelper.KEY_LIGHT_STATUS_LIST, "");
+            lightStatusArr = lightStatusStr.split(DIVIDER);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        if (lightStatusArr != null && totalCount != lightStatusArr.length) {
+            lightStatusArr = null;
+        }
+        for (int i = 0; i < totalCount; i++) {
             View v = new View(this);
             v.setBackgroundColor(getResources().getColor(R.color.white));
             GridLayout.LayoutParams layoutParams = new GridLayout.LayoutParams();
@@ -40,6 +53,9 @@ public class LightActivity extends AppCompatActivity {
             layoutParams.columnSpec = GridLayout.spec(i % glRoot.getColumnCount(), 1f);
             layoutParams.height = 0;
             layoutParams.width = 0;
+            if (lightStatusArr != null) {
+                v.setVisibility(Integer.parseInt(lightStatusArr[i]));
+            }
             glRoot.addView(v, layoutParams);
         }
         glRoot.getViewTreeObserver()
@@ -60,6 +76,12 @@ public class LightActivity extends AppCompatActivity {
     protected void onDestroy () {
         super.onDestroy();
         //        setWindowBrightness(WindowManager.LayoutParams.BRIGHTNESS_OVERRIDE_NONE);
+        StringBuffer sb = new StringBuffer();
+        for (int i = 0; i < glRoot.getChildCount(); i++) {
+            sb.append(glRoot.getChildAt(i).getVisibility() + DIVIDER);
+        }
+        sb.deleteCharAt(sb.length() - 1);
+        new SpHelper(this, SpHelper.SP_LIGHT_STATUS).put(SpHelper.KEY_LIGHT_STATUS_LIST, sb.toString());
     }
 
     private void setWindowBrightness (float brightness) {
@@ -88,7 +110,8 @@ public class LightActivity extends AppCompatActivity {
         int xIndex = x / childWidth;
         int yIndex = y / childHeight;
         int childIndex = glRoot.getColumnCount() * yIndex + xIndex;
-        if (currentIndex != childIndex) {
+        if (event.getAction() != MotionEvent.ACTION_MOVE
+                || currentIndex != childIndex) {
             currentIndex = childIndex;
             View childView = glRoot.getChildAt(currentIndex);
             if (childView != null) {
